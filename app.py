@@ -1,165 +1,155 @@
+import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, session
+import requests
+from flask import Flask, render_template, request, redirect, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = "segredo_super_forte"
+app.secret_key = "segredo123"
 
-# ================= DB =================
-def db():
-    return sqlite3.connect("database.db")
+DB = "database.db"
 
-def criar_db():
-    conn = db()
+# ================= DATABASE =================
+def init_db():
+    conn = sqlite3.connect(DB)
     c = conn.cursor()
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        login TEXT UNIQUE,
+        username TEXT,
         email TEXT,
-        senha TEXT,
-        plano TEXT,
-        downloads INTEGER,
-        reset_date TEXT
+        password TEXT,
+        plano TEXT DEFAULT 'free',
+        downloads INTEGER DEFAULT 0
     )
     """)
 
     conn.commit()
     conn.close()
 
-criar_db()
+init_db()
 
-# ================= RESET =================
-def resetar(user):
-    hoje = datetime.now()
-    reset = datetime.strptime(user[6], "%Y-%m-%d")
+# ================= TIKTOK =================
+def baixar_video(url):
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
 
-    if hoje >= reset:
-        conn = db()
-        c = conn.cursor()
+        r = requests.get(url, headers=headers, stream=True)
 
-        novo = (hoje + timedelta(days=7)).strftime("%Y-%m-%d")
+        if r.status_code != 200:
+            return None
 
-        c.execute("""
-        UPDATE users SET downloads = 0, reset_date = ?
-        WHERE id = ?
-        """, (novo, user[0]))
+        path = "video.mp4"
 
-        conn.commit()
-        conn.close()
+        with open(path, "wb") as f:
+            for chunk in r.iter_content(1024):
+                f.write(chunk)
+
+        return path
+
+    except:
+        return None
 
 # ================= ROTAS =================
 
 @app.route("/")
 def home():
-    if "user_id" not in session:
-        return redirect("/login")
+    if "user" in session:
+        return redirect("/dashboard")
+    return redirect("/login")
 
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],))
-    user = c.fetchone()
-
-    resetar(user)
-
-    limite = 2 if user[4] == "free" else 999
-
-    return render_template("dashboard.html",
-        login=user[1],
-        plano=user[4],
-        usados=user[5],
-        limite=limite
-    )
-
-# ================= REGISTER =================
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        login = request.form["login"]
-        email = request.form["email"]
-        senha = generate_password_hash(request.form["senha"])
-
-        conn = db()
-        c = conn.cursor()
-
-        try:
-            reset = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
-
-            c.execute("""
-            INSERT INTO users (login, email, senha, plano, downloads, reset_date)
-            VALUES (?, ?, ?, 'free', 0, ?)
-            """, (login, email, senha, reset))
-
-            conn.commit()
-            return redirect("/login")
-
-        except:
-            return "❌ Login já existe!"
-
-        finally:
-            conn.close()
-
-    return render_template("register.html")
-
-# ================= LOGIN =================
+# ---------- LOGIN ----------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        login = request.form["login"]
-        senha = request.form["senha"]
+        user = request.form["username"]
+        senha = request.form["password"]
 
-        conn = db()
+        conn = sqlite3.connect(DB)
         c = conn.cursor()
 
-        c.execute("SELECT * FROM users WHERE login = ?", (login,))
-        user = c.fetchone()
+        c.execute("SELECT * FROM users WHERE username=?", (user,))
+        data = c.fetchone()
 
         conn.close()
 
-        if user and check_password_hash(user[3], senha):
-            session["user_id"] = user[0]
-            return redirect("/")
-
-        return "❌ Login inválido"
+        if data and check_password_hash(data[3], senha):
+            session["user"] = data[1]
+            return redirect("/dashboard")
 
     return render_template("login.html")
 
-# ================= DOWNLOAD =================
-@app.route("/baixar")
-def baixar():
-    if "user_id" not in session:
+# ---------- REGISTER ----------
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        user = request.form["username"]
+        email = request.form["email"]
+        senha = generate_password_hash(request.form["password"])
+
+        conn = sqlite3.connect(DB)
+        c = conn.cursor()
+
+        c.execute("INSERT INTO users (username,email,password) VALUES (?,?,?)",
+                  (user, email, senha))
+
+        conn.commit()
+        conn.close()
+
         return redirect("/login")
 
-    conn = db()
-    c = conn.cursor()
+    return render_template("register.html")
 
-    c.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],))
-    user = c.fetchone()
+# ---------- DASHBOARD ----------
+@app.route("/dashboard", methods=["GET", "POST"])
+def dashboard():
+    if "user" not in session:
+        return redirect("/login")
 
-    resetar(user)
+    video = None
+    erro = None
 
-    limite = 2 if user[4] == "free" else 999
+    if request.method == "POST":
+        url = request.form["url"]
 
-    if user[5] >= limite:
-        return "🚫 Limite do plano FREE atingido!"
+        conn = sqlite3.connect(DB)
+        c = conn.cursor()
 
-    c.execute("""
-    UPDATE users SET downloads = downloads + 1 WHERE id = ?
-    """, (user[0],))
+        c.execute("SELECT downloads, plano FROM users WHERE username=?",
+                  (session["user"],))
+        data = c.fetchone()
 
-    conn.commit()
-    conn.close()
+        downloads, plano = data
 
-    return "✅ Download liberado!"
+        # limite plano
+        if plano == "free" and downloads >= 2:
+            erro = "Limite semanal atingido!"
+        else:
+            video = baixar_video(url)
 
-# ================= LOGOUT =================
+            if video:
+                c.execute("UPDATE users SET downloads = downloads + 1 WHERE username=?",
+                          (session["user"],))
+                conn.commit()
+
+        conn.close()
+
+    return render_template("dashboard.html", video=video, erro=erro)
+
+# ---------- DOWNLOAD ----------
+@app.route("/download")
+def download():
+    return send_file("video.mp4", as_attachment=True)
+
+# ---------- LOGOUT ----------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
+# ================= RUN =================
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,19 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+<link rel="stylesheet" href="/static/style.css">
 
-<div class="box">
-    <h1>Bem-vindo, {{login}}</h1>
+<div class="container">
+    <h1>🤖 TikTok Downloader</h1>
 
-    <p>Plano: {{plano}}</p>
-    <p>Downloads: {{usados}} / {{limite}}</p>
+    <form method="post">
+        <input name="url" placeholder="Cole o link do TikTok">
+        <button>Baixar Vídeo</button>
+    </form>
 
-    <a href="/baixar"><button>Baixar vídeo</button></a>
-    <a href="/logout"><button>Sair</button></a>
+    {% if erro %}
+        <p class="erro">{{ erro }}</p>
+    {% endif %}
+
+    {% if video %}
+        <a href="/download" class="download">⬇️ Baixar Vídeo</a>
+    {% endif %}
+
+    <a href="/logout">Sair</a>
 </div>
-
-</body>
-</html>
