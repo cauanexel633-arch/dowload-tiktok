@@ -21,6 +21,7 @@ def criar_db():
     con = conectar()
     cur = con.cursor()
 
+    # usuários
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,6 +34,7 @@ def criar_db():
     )
     """)
 
+    # pagamentos
     cur.execute("""
     CREATE TABLE IF NOT EXISTS pagamentos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,12 +77,12 @@ def login():
         resultado = cur.fetchone()
 
         if resultado:
+            # reset semanal
             if reset_semanal(resultado):
                 cur.execute("""
                 UPDATE users SET downloads=0, ultima_reset=?
                 WHERE id=?
                 """, (datetime.now().strftime("%Y-%m-%d"), resultado[0]))
-
                 con.commit()
 
             session["user"] = user
@@ -132,7 +134,7 @@ def dashboard():
     if request.method == "POST":
         query = request.form.get("query")
 
-        # 🔥 MOCK (substituir depois pelo bot)
+        # 🔥 MOCK de vídeos (depois você liga no bot)
         for i in range(6):
             videos.append(f"https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_{i}.mp4")
 
@@ -157,6 +159,7 @@ def download():
 
     limite = PLANOS.get(user[4], 0)
 
+    # bloqueio por plano
     if user[5] >= limite:
         con.close()
         return "❌ Limite do plano atingido!"
@@ -164,16 +167,21 @@ def download():
     videos = request.form.get("videos")
 
     if not videos:
-        return "Nenhum vídeo"
+        return "Nenhum vídeo selecionado!"
 
     lista = videos.split(",")
     url = lista[0]
 
-    r = requests.get(url)
+    try:
+        r = requests.get(url, timeout=10)
 
-    with open("video.mp4", "wb") as f:
-        f.write(r.content)
+        with open("video.mp4", "wb") as f:
+            f.write(r.content)
 
+    except:
+        return "❌ Erro ao baixar vídeo"
+
+    # soma download
     cur.execute("UPDATE users SET downloads = downloads + 1 WHERE id=?", (user[0],))
     con.commit()
     con.close()
@@ -183,11 +191,16 @@ def download():
 # ================= UPGRADE =================
 @app.route("/upgrade")
 def upgrade():
+    if "user" not in session:
+        return redirect("/")
     return render_template("upgrade.html")
 
 # ================= GERAR PIX =================
 @app.route("/gerar_pix", methods=["POST"])
 def gerar_pix():
+    if "user" not in session:
+        return redirect("/")
+
     user = session["user"]
 
     con = conectar()
@@ -205,9 +218,12 @@ def gerar_pix():
 
     return render_template("pix.html", pix=pix_code)
 
-# ================= CONFIRMAR =================
+# ================= CONFIRMAR PAGAMENTO =================
 @app.route("/confirmar_pagamento")
 def confirmar_pagamento():
+    if "user" not in session:
+        return redirect("/")
+
     user = session["user"]
 
     con = conectar()
@@ -227,6 +243,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ================= RUN =================
+# ================= RUN (CORRIGIDO PRO RENDER) =================
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
