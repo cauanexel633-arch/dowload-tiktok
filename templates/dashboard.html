@@ -1,11 +1,11 @@
 <link rel="stylesheet" href="/static/style.css">
 
 <div class="container">
-    <h1>🤖 TikTok Downloader</h1>
+    <h1>🔥 TikTok Downloader</h1>
 
     <form method="post">
         <input name="url" placeholder="Cole o link do TikTok">
-        <button>Baixar Vídeo</button>
+        <button>Baixar</button>
     </form>
 
     {% if erro %}
@@ -13,7 +13,9 @@
     {% endif %}
 
     {% if video %}
-        <a href="/download" class="download">⬇️ Baixar Vídeo</a>
+        <a href="/download?file={{ video }}" class="download">
+            ⬇️ Baixar Vídeo
+        </a>
     {% endif %}
 
     <a href="/logout">Sair</a>

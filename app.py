@@ -1,13 +1,18 @@
 import os
 import sqlite3
 import requests
+import uuid
+
 from flask import Flask, render_template, request, redirect, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = "segredo123"
+app.secret_key = os.environ.get("SECRET_KEY", "superseguro123")
 
 DB = "database.db"
+PASTA = "downloads"
+
+os.makedirs(PASTA, exist_ok=True)
 
 # ================= DATABASE =================
 def init_db():
@@ -17,7 +22,7 @@ def init_db():
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
+        username TEXT UNIQUE,
         email TEXT,
         password TEXT,
         plano TEXT DEFAULT 'free',
@@ -30,19 +35,24 @@ def init_db():
 
 init_db()
 
-# ================= TIKTOK =================
+# ================= DOWNLOAD TIKTOK =================
 def baixar_video(url):
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        api = f"https://tikwm.com/api/?url={url}"
+        data = requests.get(api).json()
 
-        r = requests.get(url, headers=headers, stream=True)
+        if "data" not in data:
+            return None
+
+        video_url = data["data"]["play"]
+
+        nome = f"{uuid.uuid4().hex}.mp4"
+        path = os.path.join(PASTA, nome)
+
+        r = requests.get(video_url, stream=True)
 
         if r.status_code != 200:
             return None
-
-        path = "video.mp4"
 
         with open(path, "wb") as f:
             for chunk in r.iter_content(1024):
@@ -64,44 +74,56 @@ def home():
 # ---------- LOGIN ----------
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    erro = None
+
     if request.method == "POST":
-        user = request.form["username"]
-        senha = request.form["password"]
+        user = request.form.get("username")
+        senha = request.form.get("password")
 
         conn = sqlite3.connect(DB)
         c = conn.cursor()
 
         c.execute("SELECT * FROM users WHERE username=?", (user,))
         data = c.fetchone()
-
         conn.close()
 
         if data and check_password_hash(data[3], senha):
             session["user"] = data[1]
             return redirect("/dashboard")
+        else:
+            erro = "Login inválido"
 
-    return render_template("login.html")
+    return render_template("login.html", erro=erro)
 
 # ---------- REGISTER ----------
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    erro = None
+
     if request.method == "POST":
-        user = request.form["username"]
-        email = request.form["email"]
-        senha = generate_password_hash(request.form["password"])
+        user = request.form.get("username")
+        email = request.form.get("email")
+        senha = request.form.get("password")
+
+        if not user or not email or not senha:
+            erro = "Preencha tudo"
+            return render_template("register.html", erro=erro)
 
         conn = sqlite3.connect(DB)
         c = conn.cursor()
 
-        c.execute("INSERT INTO users (username,email,password) VALUES (?,?,?)",
-                  (user, email, senha))
+        try:
+            c.execute("INSERT INTO users (username,email,password) VALUES (?,?,?)",
+                      (user, email, generate_password_hash(senha)))
+            conn.commit()
+        except:
+            erro = "Usuário já existe"
+            return render_template("register.html", erro=erro)
 
-        conn.commit()
         conn.close()
-
         return redirect("/login")
 
-    return render_template("register.html")
+    return render_template("register.html", erro=erro)
 
 # ---------- DASHBOARD ----------
 @app.route("/dashboard", methods=["GET", "POST"])
@@ -109,11 +131,15 @@ def dashboard():
     if "user" not in session:
         return redirect("/login")
 
-    video = None
     erro = None
+    video = None
 
     if request.method == "POST":
-        url = request.form["url"]
+        url = request.form.get("url")
+
+        if not url or "tiktok.com" not in url:
+            erro = "Link inválido"
+            return render_template("dashboard.html", erro=erro)
 
         conn = sqlite3.connect(DB)
         c = conn.cursor()
@@ -124,25 +150,32 @@ def dashboard():
 
         downloads, plano = data
 
-        # limite plano
         if plano == "free" and downloads >= 2:
-            erro = "Limite semanal atingido!"
+            erro = "Limite do plano grátis atingido!"
         else:
-            video = baixar_video(url)
+            path = baixar_video(url)
 
-            if video:
+            if path:
+                video = path
                 c.execute("UPDATE users SET downloads = downloads + 1 WHERE username=?",
                           (session["user"],))
                 conn.commit()
+            else:
+                erro = "Erro ao baixar vídeo"
 
         conn.close()
 
-    return render_template("dashboard.html", video=video, erro=erro)
+    return render_template("dashboard.html", erro=erro, video=video)
 
 # ---------- DOWNLOAD ----------
 @app.route("/download")
 def download():
-    return send_file("video.mp4", as_attachment=True)
+    path = request.args.get("file")
+
+    if not path or not os.path.exists(path):
+        return "Arquivo não encontrado"
+
+    return send_file(path, as_attachment=True)
 
 # ---------- LOGOUT ----------
 @app.route("/logout")
