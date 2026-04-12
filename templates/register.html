@@ -1,22 +1,21 @@
-{% extends "base.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
 
-<div class="center">
+<div class="box">
+<h2>Cadastro</h2>
 
-    <h2>🆕 Criar Conta</h2>
-
-    <form method="POST">
-        <input name="username" placeholder="Usuário" required>
-        <input name="email" placeholder="Email" required>
-        <input name="password" type="password" placeholder="Senha" required>
-        <button>Cadastrar</button>
-    </form>
-
-    <br>
-    <a href="/">
-        <button>Voltar</button>
-    </a>
+<form method="POST">
+<input name="username" placeholder="Usuário" required>
+<input name="email" placeholder="Email" required>
+<input name="password" type="password" placeholder="Senha" required>
+<button>Criar conta</button>
+</form>
 
 </div>
 
-{% endblock %}
+</body>
+</html>

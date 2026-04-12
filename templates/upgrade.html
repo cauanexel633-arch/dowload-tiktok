@@ -1,27 +1,6 @@
-{% extends "base.html" %}
-{% block content %}
+<h2>Plano PRO</h2>
+<p>50 downloads por semana</p>
 
-<div class="center">
-
-    <h2>💎 Plano PRO</h2>
-
-    <p>✔️ 50 downloads por semana</p>
-    <p>✔️ Acesso completo</p>
-    <p>✔️ Mais velocidade</p>
-
-    <h1 style="color:gold;">R$19,90</h1>
-
-    <form method="POST" action="/gerar_pix">
-        <button style="background:gold;color:black;">
-            💳 Gerar Pix
-        </button>
-    </form>
-
-    <br>
-    <a href="/dashboard">
-        <button>Voltar</button>
-    </a>
-
-</div>
-
-{% endblock %}
+<form method="POST" action="/comprar">
+<button>Comprar</button>
+</form>

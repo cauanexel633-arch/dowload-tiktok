@@ -7,13 +7,12 @@ from flask import Flask, render_template, request, redirect, session, send_file
 app = Flask(__name__)
 app.secret_key = "segredo123"
 
-# ================= CONFIG =================
 PLANOS = {
     "free": 2,
     "pro": 50
 }
 
-# ================= BANCO =================
+# ================= DB =================
 def conectar():
     return sqlite3.connect("database.db")
 
@@ -21,7 +20,6 @@ def criar_db():
     con = conectar()
     cur = con.cursor()
 
-    # usuários
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,34 +32,37 @@ def criar_db():
     )
     """)
 
-    # pagamentos
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS pagamentos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario TEXT,
-        valor TEXT,
-        status TEXT
-    )
-    """)
-
     con.commit()
     con.close()
 
 criar_db()
 
-# ================= RESET SEMANAL =================
-def reset_semanal(user):
+# ================= RESET =================
+def reset(user):
     hoje = datetime.now()
 
     if user[6]:
         ultima = datetime.strptime(user[6], "%Y-%m-%d")
-
         if hoje - ultima >= timedelta(days=7):
             return True
     else:
         return True
 
     return False
+
+# ================= BUSCAR TIKTOK =================
+def buscar_videos(query):
+    # ⚠️ Aqui é MOCK (substitua por API real depois)
+    videos = []
+
+    for i in range(8):
+        videos.append({
+            "video": "https://www.w3schools.com/html/mov_bbb.mp4",
+            "thumb": "",
+            "likes": 1000 + i*200
+        })
+
+    return videos
 
 # ================= LOGIN =================
 @app.route("/", methods=["GET", "POST"])
@@ -74,38 +75,30 @@ def login():
         cur = con.cursor()
 
         cur.execute("SELECT * FROM users WHERE username=? AND password=?", (user, senha))
-        resultado = cur.fetchone()
+        u = cur.fetchone()
 
-        if resultado:
-            # reset semanal
-            if reset_semanal(resultado):
-                cur.execute("""
-                UPDATE users SET downloads=0, ultima_reset=?
-                WHERE id=?
-                """, (datetime.now().strftime("%Y-%m-%d"), resultado[0]))
+        if u:
+            if reset(u):
+                cur.execute("UPDATE users SET downloads=0, ultima_reset=? WHERE id=?",
+                            (datetime.now().strftime("%Y-%m-%d"), u[0]))
                 con.commit()
 
             session["user"] = user
-            con.close()
             return redirect("/dashboard")
 
-        con.close()
+        return "Login inválido"
 
     return render_template("login.html")
 
 # ================= REGISTER =================
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
-        user = request.form["username"]
-        email = request.form["email"]
-        senha = request.form["password"]
-
         con = conectar()
         cur = con.cursor()
 
-        cur.execute("INSERT INTO users (username, email, password) VALUES (?,?,?)",
-                    (user, email, senha))
+        cur.execute("INSERT INTO users (username,email,password) VALUES (?,?,?)",
+                    (request.form["username"], request.form["email"], request.form["password"]))
 
         con.commit()
         con.close()
@@ -115,7 +108,7 @@ def register():
     return render_template("register.html")
 
 # ================= DASHBOARD =================
-@app.route("/dashboard", methods=["GET", "POST"])
+@app.route("/dashboard", methods=["GET","POST"])
 def dashboard():
     if "user" not in session:
         return redirect("/")
@@ -126,19 +119,14 @@ def dashboard():
     cur.execute("SELECT * FROM users WHERE username=?", (session["user"],))
     user = cur.fetchone()
 
-    limite = PLANOS.get(user[4], 0)
+    limite = PLANOS[user[4]]
     restante = limite - user[5]
 
     videos = []
 
     if request.method == "POST":
-        query = request.form.get("query")
-
-        # 🔥 MOCK de vídeos (depois você liga no bot)
-        for i in range(6):
-            videos.append(f"https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_{i}.mp4")
-
-    con.close()
+        query = request.form["query"]
+        videos = buscar_videos(query)
 
     return render_template("dashboard.html",
                            videos=videos,
@@ -157,83 +145,33 @@ def download():
     cur.execute("SELECT * FROM users WHERE username=?", (session["user"],))
     user = cur.fetchone()
 
-    limite = PLANOS.get(user[4], 0)
+    if user[5] >= PLANOS[user[4]]:
+        return "Limite atingido"
 
-    # bloqueio por plano
-    if user[5] >= limite:
-        con.close()
-        return "❌ Limite do plano atingido!"
+    url = request.form.get("video")
 
-    videos = request.form.get("videos")
+    r = requests.get(url)
 
-    if not videos:
-        return "Nenhum vídeo selecionado!"
+    with open("video.mp4", "wb") as f:
+        f.write(r.content)
 
-    lista = videos.split(",")
-    url = lista[0]
-
-    try:
-        r = requests.get(url, timeout=10)
-
-        with open("video.mp4", "wb") as f:
-            f.write(r.content)
-
-    except:
-        return "❌ Erro ao baixar vídeo"
-
-    # soma download
     cur.execute("UPDATE users SET downloads = downloads + 1 WHERE id=?", (user[0],))
     con.commit()
-    con.close()
 
     return send_file("video.mp4", as_attachment=True)
 
 # ================= UPGRADE =================
 @app.route("/upgrade")
 def upgrade():
-    if "user" not in session:
-        return redirect("/")
     return render_template("upgrade.html")
 
-# ================= GERAR PIX =================
-@app.route("/gerar_pix", methods=["POST"])
-def gerar_pix():
-    if "user" not in session:
-        return redirect("/")
-
-    user = session["user"]
-
+@app.route("/comprar", methods=["POST"])
+def comprar():
     con = conectar()
     cur = con.cursor()
 
-    cur.execute("""
-    INSERT INTO pagamentos (usuario, valor, status)
-    VALUES (?, ?, ?)
-    """, (user, "19.90", "pendente"))
-
+    cur.execute("UPDATE users SET plano='pro' WHERE username=?", (session["user"],))
     con.commit()
-    con.close()
-
-    pix_code = "000201PIXFAKE123456789"
-
-    return render_template("pix.html", pix=pix_code)
-
-# ================= CONFIRMAR PAGAMENTO =================
-@app.route("/confirmar_pagamento")
-def confirmar_pagamento():
-    if "user" not in session:
-        return redirect("/")
-
-    user = session["user"]
-
-    con = conectar()
-    cur = con.cursor()
-
-    cur.execute("UPDATE users SET plano='pro' WHERE username=?", (user,))
-    cur.execute("UPDATE pagamentos SET status='pago' WHERE usuario=?", (user,))
-
-    con.commit()
-    con.close()
 
     return redirect("/dashboard")
 
@@ -243,7 +181,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ================= RUN (CORRIGIDO PRO RENDER) =================
+# ================= RUN =================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port)

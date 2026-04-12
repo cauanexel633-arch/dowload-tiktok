@@ -1,77 +1,33 @@
-{% extends "base.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
 
-<div class="container">
-
-    <!-- ESQUERDA -->
-    <div class="left">
-
-        <h3>🔍 Buscar vídeos</h3>
-
-        <form method="POST">
-            <input name="query" placeholder="Ex: power bank, drone..." required>
-            <button>Buscar</button>
-        </form>
-
-        <hr>
-
-        {% for v in videos %}
-        <div class="video">
-            <video controls src="{{ v }}"></video>
-
-            <button onclick="addVideo('{{ v }}')">
-                ➕ Selecionar
-            </button>
-        </div>
-        {% endfor %}
-
-    </div>
-
-    <!-- DIREITA -->
-    <div class="right">
-
-        <h3>👤 Plano: {{ plano }}</h3>
-        <p>📥 Downloads restantes: {{ restante }}</p>
-
-        <a href="/upgrade">
-            <button style="background:gold;">💎 Virar PRO</button>
-        </a>
-
-        <hr>
-
-        <h3>📦 Selecionados</h3>
-        <ul id="lista"></ul>
-
-        <form method="POST" action="/download">
-            <input type="hidden" name="videos" id="videos_input">
-            <button>⬇️ Baixar</button>
-        </form>
-
-        <br>
-        <a href="/logout">
-            <button style="background:red;">Sair</button>
-        </a>
-
-    </div>
-
+<div class="top">
+Plano: {{plano}} | Restante: {{restante}}
+<a href="/upgrade">Upgrade</a>
+<a href="/logout">Sair</a>
 </div>
 
-<script>
-let selecionados = []
+<form method="POST">
+<input name="query" placeholder="Buscar vídeos..." required>
+<button>Buscar</button>
+</form>
 
-function addVideo(v) {
-    if (!selecionados.includes(v)) {
+<div class="grid">
+{% for v in videos %}
+<div class="card">
+<form method="POST" action="/download">
+<video src="{{v.video}}" controls></video>
+<p>❤️ {{v.likes}}</p>
+<input type="hidden" name="video" value="{{v.video}}">
+<button>Baixar</button>
+</form>
+</div>
+{% endfor %}
+</div>
 
-        selecionados.push(v)
-
-        let li = document.createElement("li")
-        li.innerText = "🎬 Vídeo selecionado"
-        document.getElementById("lista").appendChild(li)
-
-        document.getElementById("videos_input").value = selecionados.join(",")
-
-    }
-}
-</script>
-
-{% endblock %}
+</body>
+</html>
