@@ -1,13 +1,21 @@
-<link rel="stylesheet" href="/static/style.css">
+{% extends "base.html" %}
+{% block content %}
 
-<div class="container">
-    <h1>🔐 Login</h1>
+<div class="center">
 
-    <form method="post">
-        <input name="username" placeholder="Usuário">
-        <input name="password" type="password" placeholder="Senha">
+    <h2>🔐 Entrar</h2>
+
+    <form method="POST">
+        <input name="username" placeholder="Usuário" required>
+        <input name="password" type="password" placeholder="Senha" required>
         <button>Entrar</button>
     </form>
 
-    <a href="/register">Criar conta</a>
+    <p>Não tem conta?</p>
+    <a href="/register">
+        <button>Criar conta</button>
+    </a>
+
 </div>
+
+{% endblock %}

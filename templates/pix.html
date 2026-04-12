@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="center">
+
+    <h2>💳 Pagamento via Pix</h2>
+
+    <p>Copie o código abaixo:</p>
+
+    <textarea style="width:300px;height:100px;">
+{{ pix }}
+    </textarea>
+
+    <p>Depois de pagar, clique abaixo:</p>
+
+    <a href="/confirmar_pagamento">
+        <button style="background:green;">
+            ✅ Já paguei
+        </button>
+    </a>
+
+</div>
+
+{% endblock %}

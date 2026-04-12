@@ -1,89 +1,53 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
 body {
-    font-family: 'Segoe UI', sans-serif;
     background: linear-gradient(135deg, #020617, #0f172a);
-    color: #fff;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* CONTAINER */
-.container {
-    background: rgba(15, 23, 42, 0.9);
-    padding: 30px;
-    border-radius: 20px;
-    width: 350px;
-    box-shadow: 0 0 40px rgba(0,255,255,0.1);
-    text-align: center;
-}
-
-/* TITULO */
-h1 {
-    margin-bottom: 20px;
-    font-size: 24px;
-    color: #38bdf8;
-}
-
-/* INPUTS */
-input {
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    border: none;
-    border-radius: 10px;
-    outline: none;
-    background: #020617;
     color: white;
-    border: 1px solid #1e293b;
+    font-family: Arial;
 }
 
-/* BOTÃO */
-button {
+.container {
+    display: flex;
+}
+
+.left {
+    width: 70%;
+    padding: 20px;
+}
+
+.right {
+    width: 30%;
+    background: #020617;
+    padding: 20px;
+}
+
+.video {
+    background: #1e293b;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 15px;
+}
+
+video {
     width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border: none;
     border-radius: 10px;
-    background: linear-gradient(90deg, #22c55e, #38bdf8);
-    color: black;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.3s;
 }
 
-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px #38bdf8;
-}
-
-/* LINKS */
-a {
-    display: block;
-    margin-top: 10px;
-    color: #38bdf8;
-    text-decoration: none;
-}
-
-/* ERRO */
-.erro {
-    color: #ef4444;
-    margin-top: 10px;
-}
-
-/* DOWNLOAD */
-.download {
-    display: inline-block;
-    margin-top: 15px;
-    padding: 10px 20px;
-    border-radius: 10px;
+button {
+    padding: 10px;
     background: #22c55e;
-    color: black;
-    font-weight: bold;
+    border: none;
+    color: white;
+    margin-top: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+input {
+    padding: 10px;
+    width: 70%;
+    margin-bottom: 10px;
+}
+
+.center {
+    text-align: center;
+    margin-top: 100px;
 }

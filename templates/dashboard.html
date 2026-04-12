@@ -1,22 +1,77 @@
-<link rel="stylesheet" href="/static/style.css">
+{% extends "base.html" %}
+{% block content %}
 
 <div class="container">
-    <h1>🔥 TikTok Downloader</h1>
 
-    <form method="post">
-        <input name="url" placeholder="Cole o link do TikTok">
-        <button>Baixar</button>
-    </form>
+    <!-- ESQUERDA -->
+    <div class="left">
 
-    {% if erro %}
-        <p class="erro">{{ erro }}</p>
-    {% endif %}
+        <h3>🔍 Buscar vídeos</h3>
 
-    {% if video %}
-        <a href="/download?file={{ video }}" class="download">
-            ⬇️ Baixar Vídeo
+        <form method="POST">
+            <input name="query" placeholder="Ex: power bank, drone..." required>
+            <button>Buscar</button>
+        </form>
+
+        <hr>
+
+        {% for v in videos %}
+        <div class="video">
+            <video controls src="{{ v }}"></video>
+
+            <button onclick="addVideo('{{ v }}')">
+                ➕ Selecionar
+            </button>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- DIREITA -->
+    <div class="right">
+
+        <h3>👤 Plano: {{ plano }}</h3>
+        <p>📥 Downloads restantes: {{ restante }}</p>
+
+        <a href="/upgrade">
+            <button style="background:gold;">💎 Virar PRO</button>
         </a>
-    {% endif %}
 
-    <a href="/logout">Sair</a>
+        <hr>
+
+        <h3>📦 Selecionados</h3>
+        <ul id="lista"></ul>
+
+        <form method="POST" action="/download">
+            <input type="hidden" name="videos" id="videos_input">
+            <button>⬇️ Baixar</button>
+        </form>
+
+        <br>
+        <a href="/logout">
+            <button style="background:red;">Sair</button>
+        </a>
+
+    </div>
+
 </div>
+
+<script>
+let selecionados = []
+
+function addVideo(v) {
+    if (!selecionados.includes(v)) {
+
+        selecionados.push(v)
+
+        let li = document.createElement("li")
+        li.innerText = "🎬 Vídeo selecionado"
+        document.getElementById("lista").appendChild(li)
+
+        document.getElementById("videos_input").value = selecionados.join(",")
+
+    }
+}
+</script>
+
+{% endblock %}
