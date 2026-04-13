@@ -8,7 +8,7 @@ app.secret_key = "segredo123"
 
 # ================= SUPABASE =================
 SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"  # ⚠️ coloque sua chave aqui
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -71,30 +71,30 @@ def dashboard():
     video_url = None
     erro = None
 
-   if request.method == "POST":
-    link = request.form.get("link")
+    if request.method == "POST":
+        link = request.form.get("link")
 
-    try:
-        api = f"https://www.tikwm.com/api/?url={link}"
-        response = requests.get(api)
-        data = response.json()
+        try:
+            api = f"https://www.tikwm.com/api/?url={link}"
+            response = requests.get(api)
+            data = response.json()
 
-        video_url = data.get("data", {}).get("play")
+            video_url = data.get("data", {}).get("play")
 
-        if not video_url:
-            raise Exception("Sem vídeo")
+            if not video_url:
+                raise Exception("Sem vídeo")
 
-        # salvar histórico
-        supabase.table("downloads").insert({
-            "username": session["user"],
-            "link": link
-        }).execute()
+            # salvar histórico
+            supabase.table("downloads").insert({
+                "username": session["user"],
+                "link": link
+            }).execute()
 
-    except Exception as e:
-        print("ERRO API:", e)
-        erro = "Link inválido ou vídeo não encontrado"
-        
-    # pegar histórico
+        except Exception as e:
+            print("ERRO API:", e)
+            erro = "Link inválido ou vídeo não encontrado"
+
+    # histórico
     try:
         historico = supabase.table("downloads")\
             .select("*")\
@@ -119,11 +119,10 @@ def download():
     try:
         r = requests.get(video_url)
 
-        file_path = "video.mp4"
-        with open(file_path, "wb") as f:
+        with open("video.mp4", "wb") as f:
             f.write(r.content)
 
-        return send_file(file_path, as_attachment=True)
+        return send_file("video.mp4", as_attachment=True, mimetype="video/mp4")
 
     except Exception as e:
         print("ERRO DOWNLOAD:", e)
@@ -138,4 +137,4 @@ def logout():
 # ================= RUN =================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)

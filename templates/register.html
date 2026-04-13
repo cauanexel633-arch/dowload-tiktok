@@ -1,26 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Cadastro</title>
-<style>
-body{background:#020617;color:white;text-align:center;font-family:Arial}
-input,button{padding:10px;margin:10px;border-radius:10px;border:none}
-button{background:#3b82f6;color:white}
-</style>
+<title>Registrar</title>
+<link rel="stylesheet" href="/static/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
+<div class="container">
 <h1>Criar Conta</h1>
 
-<form method="POST" action="/register">
-<input name="username" placeholder="Usuário"><br>
-<input type="password" name="senha" placeholder="Senha"><br>
-<button>Cadastrar</button>
+<div class="card">
+<form method="POST">
+<input name="username" placeholder="Usuário">
+<input name="senha" type="password" placeholder="Senha">
+<button>Registrar</button>
 </form>
 
+{% if erro %}
 <p style="color:red;">{{ erro }}</p>
+{% endif %}
+</div>
 
 <a href="/login">Voltar</a>
+</div>
 
 </body>
 </html>

@@ -1,50 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Downloader</title>
-<style>
-body{background:#020617;color:white;text-align:center;font-family:Arial}
-.card{background:#0f172a;padding:20px;border-radius:20px;width:350px;margin:auto}
-input,button{padding:10px;margin:10px;border-radius:10px;border:none}
-button{background:#22c55e;color:white}
-video{width:100%;border-radius:10px}
-.hist{background:#020617;padding:10px;margin-top:10px;border-radius:10px}
-</style>
+<title>Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
-<h2>Olá {{ session.user }}</h2>
+<div class="container">
+
+<h1>🎬 Baixar TikTok</h1>
 
 <div class="card">
-
 <form method="POST">
-<input name="link" placeholder="Cole link do TikTok">
+<input name="link" placeholder="Cole o link do TikTok">
 <button>Buscar</button>
 </form>
 
+{% if erro %}
 <p style="color:red;">{{ erro }}</p>
-
-{% if video_url %}
-<video controls src="{{ video_url }}"></video>
-
-<form method="POST" action="/download">
-<input type="hidden" name="link" value="{{ video_url }}">
-<button>Baixar</button>
-</form>
 {% endif %}
-
 </div>
 
+{% if video_url %}
+<div class="card">
+<video controls>
+<source src="{{ video_url }}">
+</video>
+
+<form method="POST" action="/download">
+<input type="hidden" name="video_url" value="{{ video_url }}">
+<button>⬇️ Baixar</button>
+</form>
+</div>
+{% endif %}
+
+<div class="card">
 <h3>Histórico</h3>
 
 {% for item in historico %}
-<div class="hist">
-{{ item.link }}
-</div>
+<div class="history-item">{{ item.link }}</div>
 {% endfor %}
 
-<br>
+</div>
+
 <a href="/logout">Sair</a>
+
+</div>
 
 </body>
 </html>
