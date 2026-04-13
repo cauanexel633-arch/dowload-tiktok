@@ -1,7 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Cadastro</title>
+<style>
+body{background:#020617;color:white;text-align:center;font-family:Arial}
+input,button{padding:10px;margin:10px;border-radius:10px;border:none}
+button{background:#3b82f6;color:white}
+</style>
+</head>
+<body>
+
+<h1>Criar Conta</h1>
+
 <form method="POST" action="/register">
-<input name="username">
-<input type="password" name="senha">
+<input name="username" placeholder="Usuário"><br>
+<input type="password" name="senha" placeholder="Senha"><br>
 <button>Cadastrar</button>
 </form>
 
+<p style="color:red;">{{ erro }}</p>
+
 <a href="/login">Voltar</a>
+
+</body>
+</html>

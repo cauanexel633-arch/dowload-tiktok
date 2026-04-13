@@ -1,7 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+<style>
+body{background:#020617;color:white;text-align:center;font-family:Arial}
+input,button{padding:10px;margin:10px;border-radius:10px;border:none}
+button{background:#22c55e;color:white}
+</style>
+</head>
+<body>
+
+<h1>Login</h1>
+
 <form method="POST" action="/login">
-<input name="username">
-<input type="password" name="senha">
+<input name="username" placeholder="Usuário"><br>
+<input type="password" name="senha" placeholder="Senha"><br>
 <button>Entrar</button>
 </form>
 
+<p style="color:red;">{{ erro }}</p>
+
 <a href="/register">Criar conta</a>
+
+</body>
+</html>

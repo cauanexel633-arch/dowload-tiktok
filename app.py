@@ -26,8 +26,8 @@ def register():
         if not username or not senha:
             return render_template("register.html", erro="Preencha tudo")
 
-        # verificar duplicado
         check = supabase.table("users").select("*").eq("username", username).execute()
+
         if check.data:
             return render_template("register.html", erro="Usuário já existe")
 
@@ -57,7 +57,7 @@ def login():
             session["user"] = username
             return redirect(url_for("dashboard"))
 
-        return render_template("login.html", erro="Usuário inválido")
+        return render_template("login.html", erro="Login inválido")
 
     return render_template("login.html")
 
@@ -77,10 +77,26 @@ def dashboard():
             api = f"https://api.tiklydown.eu.org/api/download?url={link}"
             r = requests.get(api).json()
             video_url = r["video"]["noWatermark"]
+
+            # salvar histórico
+            supabase.table("downloads").insert({
+                "username": session["user"],
+                "link": link
+            }).execute()
+
         except:
             erro = "Erro ao buscar vídeo"
 
-    return render_template("dashboard.html", video_url=video_url, erro=erro)
+    # pegar histórico
+    historico = supabase.table("downloads")\
+        .select("*")\
+        .eq("username", session["user"])\
+        .execute().data
+
+    return render_template("dashboard.html",
+                           video_url=video_url,
+                           erro=erro,
+                           historico=historico)
 
 # ================= DOWNLOAD =================
 @app.route("/download", methods=["POST"])
@@ -97,7 +113,7 @@ def download():
 
         return send_file("video.mp4", as_attachment=True)
     except:
-        return "Erro no download"
+        return "Erro ao baixar vídeo"
 
 # ================= LOGOUT =================
 @app.route("/logout")
