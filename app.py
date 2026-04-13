@@ -8,7 +8,7 @@ app.secret_key = "segredo123"
 
 # 🔗 SUPABASE
 SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjk3ODAsImV4cCI6MjA5MTY0NTc4MH0.08XVFqBE_SvbiNeLYLsUHd6xKa8xkDssbFjoKE0oYtI"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # =========================
@@ -58,7 +58,7 @@ def login():
             session["user"] = username
             return redirect(url_for("dashboard"))
         else:
-            return "Usuário inválido!"
+            return render_template("login.html", erro="Usuário inválido!")
 
     return render_template("login.html")
 
@@ -103,6 +103,16 @@ def download():
 
     except:
         return "Erro ao baixar vídeo!"
+
+# =========================
+# CONTAS (NOVO)
+# =========================
+@app.route("/contas")
+def contas():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    return render_template("contas.html")
 
 # =========================
 # LOGOUT
