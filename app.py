@@ -9,16 +9,21 @@ app.secret_key = "segredo123"
 
 # ================= SUPABASE =================
 SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjk3ODAsImV4cCI6MjA5MTY0NTc4MH0.08XVFqBE_SvbiNeLYLsUHd6xKa8xkDssbFjoKE0oYtI"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ================= HOME =================
+@app.route("/")
+def home():
+    return redirect("/login")
+
 # ================= LOGIN =================
-@app.route("/", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form["user"]
-        senha = request.form["senha"]
+        user = request.form.get("user")
+        senha = request.form.get("senha")
 
         res = supabase.table("users").select("*").eq("user", user).eq("senha", senha).execute()
 
@@ -30,31 +35,34 @@ def login():
 
     return render_template("login.html")
 
-
 # ================= REGISTRO =================
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        user = request.form["user"]
-        senha = request.form["senha"]
+        user = request.form.get("user")
+        senha = request.form.get("senha")
+
+        # evita duplicado
+        check = supabase.table("users").select("*").eq("user", user).execute()
+        if check.data:
+            return render_template("register.html", erro="Usuário já existe")
 
         supabase.table("users").insert({
             "user": user,
             "senha": senha
         }).execute()
 
-        return redirect("/")
+        return redirect("/login")
 
     return render_template("register.html")
-
 
 # ================= DASHBOARD =================
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
-        return redirect("/")
-    return render_template("dashboard.html")
+        return redirect("/login")
 
+    return render_template("dashboard.html")
 
 # ================= PEGAR VIDEO =================
 def pegar_video_url(link):
@@ -72,11 +80,14 @@ def pegar_video_url(link):
     except:
         return None
 
-
 # ================= PREVIEW =================
 @app.route("/preview", methods=["POST"])
 def preview():
+    if "user" not in session:
+        return redirect("/login")
+
     link = request.form.get("link")
+
     video_url = pegar_video_url(link)
 
     if not video_url:
@@ -84,11 +95,16 @@ def preview():
 
     return render_template("dashboard.html", video_url=video_url)
 
-
 # ================= DOWNLOAD =================
 @app.route("/download", methods=["POST"])
 def download():
+    if "user" not in session:
+        return redirect("/login")
+
     video_url = request.form.get("video_url")
+
+    if not video_url:
+        return redirect("/dashboard")
 
     headers = {
         "User-Agent": "Mozilla/5.0",
@@ -106,13 +122,11 @@ def download():
 
     return send_file(caminho, as_attachment=True)
 
-
 # ================= LOGOUT =================
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("/")
-
+    return redirect("/login")
 
 # ================= RUN =================
 if __name__ == "__main__":
