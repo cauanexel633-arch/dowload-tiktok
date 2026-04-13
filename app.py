@@ -75,8 +75,14 @@ def dashboard():
 
         try:
             api = f"https://api.tiklydown.eu.org/api/download?url={link}"
-            r = requests.get(api).json()
-            video_url = r["video"]["noWatermark"]
+try:
+    r = requests.get(api).json()
+    video_url = r.get("video", {}).get("noWatermark")
+    
+    if not video_url:
+        raise Exception("Sem vídeo")
+except:
+    erro = "Link inválido ou API fora do ar"
 
             # salvar histórico
             supabase.table("downloads").insert({
