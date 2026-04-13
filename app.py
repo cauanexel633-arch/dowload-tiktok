@@ -71,29 +71,29 @@ def dashboard():
     video_url = None
     erro = None
 
-    if request.method == "POST":
-        link = request.form.get("link")
+   if request.method == "POST":
+    link = request.form.get("link")
 
-        try:
-            api = f"https://api.tiklydown.eu.org/api/download?url={link}"
-            response = requests.get(api)
-            data = response.json()
+    try:
+        api = f"https://www.tikwm.com/api/?url={link}"
+        response = requests.get(api)
+        data = response.json()
 
-            video_url = data.get("video", {}).get("noWatermark")
+        video_url = data.get("data", {}).get("play")
 
-            if not video_url:
-                raise Exception("Sem vídeo")
+        if not video_url:
+            raise Exception("Sem vídeo")
 
-            # salvar histórico
-            supabase.table("downloads").insert({
-                "username": session["user"],
-                "link": link
-            }).execute()
+        # salvar histórico
+        supabase.table("downloads").insert({
+            "username": session["user"],
+            "link": link
+        }).execute()
 
-        except Exception as e:
-            print("ERRO:", e)
-            erro = "Link inválido ou erro na API"
-
+    except Exception as e:
+        print("ERRO API:", e)
+        erro = "Link inválido ou vídeo não encontrado"
+        
     # pegar histórico
     try:
         historico = supabase.table("downloads")\
