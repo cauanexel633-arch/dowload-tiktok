@@ -1,24 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-<link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-
-<div class="box">
-<h2>🔐 Login</h2>
-
-<form action="/login" method="POST">
-<input name="user" placeholder="Usuário" required>
-<input type="password" name="senha" placeholder="Senha" required>
+<form method="POST" action="/login">
+<input name="username">
+<input type="password" name="senha">
 <button>Entrar</button>
 </form>
 
-<p style="text-align:center;">
-Não tem conta? <a href="/register_page">Criar conta</a>
-</p>
-
-</div>
-
-</body>
-</html>
+<a href="/register">Criar conta</a>

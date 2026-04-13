@@ -1,25 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-<link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-
-<div class="box">
-<h2>🆕 Criar Conta</h2>
-
-<form action="/register" method="POST">
-<input name="user" placeholder="Usuário" required>
-<input type="email" name="email" placeholder="Email" required>
-<input type="password" name="senha" placeholder="Senha" required>
+<form method="POST" action="/register">
+<input name="username">
+<input type="password" name="senha">
 <button>Cadastrar</button>
 </form>
 
-<p style="text-align:center;">
-Já tem conta? <a href="/">Entrar</a>
-</p>
-
-</div>
-
-</body>
-</html>
+<a href="/login">Voltar</a>
