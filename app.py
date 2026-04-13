@@ -22,13 +22,17 @@ def home():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form.get("user")
+        username = request.form.get("username")
         senha = request.form.get("senha")
 
-        res = supabase.table("users").select("*").eq("user", user).eq("senha", senha).execute()
+        res = supabase.table("users")\
+            .select("*")\
+            .eq("username", username)\
+            .eq("senha", senha)\
+            .execute()
 
         if res.data:
-            session["user"] = user
+            session["user"] = username
             return redirect("/dashboard")
 
         return render_template("login.html", erro="Usuário inválido")
@@ -39,16 +43,20 @@ def login():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        user = request.form.get("user")
+        username = request.form.get("username")
         senha = request.form.get("senha")
 
-        # evita duplicado
-        check = supabase.table("users").select("*").eq("user", user).execute()
+        # verifica se já existe
+        check = supabase.table("users")\
+            .select("*")\
+            .eq("username", username)\
+            .execute()
+
         if check.data:
             return render_template("register.html", erro="Usuário já existe")
 
         supabase.table("users").insert({
-            "user": user,
+            "username": username,
             "senha": senha
         }).execute()
 
@@ -74,7 +82,9 @@ def pegar_video_url(link):
         match = re.search(r'"playAddr":"(https:[^"]+)"', html)
 
         if match:
-            return match.group(1).replace("\\u0026", "&").replace("\\u002F", "/")
+            return match.group(1)\
+                .replace("\\u0026", "&")\
+                .replace("\\u002F", "/")
 
         return None
     except:
@@ -87,7 +97,6 @@ def preview():
         return redirect("/login")
 
     link = request.form.get("link")
-
     video_url = pegar_video_url(link)
 
     if not video_url:
