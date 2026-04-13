@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file
+from flask import Flask, render_template, request, redirect, session, url_for, send_file
 import requests
 import os
 from supabase import create_client
@@ -8,7 +8,7 @@ app.secret_key = "segredo123"
 
 # 🔗 SUPABASE
 SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"  # coloque sua key aqui
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjk3ODAsImV4cCI6MjA5MTY0NTc4MH0.08XVFqBE_SvbiNeLYLsUHd6xKa8xkDssbFjoKE0oYtI"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # =========================
@@ -16,7 +16,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # =========================
 @app.route("/")
 def home():
-    return redirect("/login")
+    return redirect(url_for("login"))
 
 # =========================
 # REGISTER
@@ -24,15 +24,18 @@ def home():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"]
-        senha = request.form["senha"]
+        username = request.form.get("username")
+        senha = request.form.get("senha")
+
+        if not username or not senha:
+            return "Preencha tudo!"
 
         supabase.table("users").insert({
             "username": username,
             "senha": senha
         }).execute()
 
-        return redirect("/login")
+        return redirect(url_for("login"))
 
     return render_template("register.html")
 
@@ -42,14 +45,18 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
-        senha = request.form["senha"]
+        username = request.form.get("username")
+        senha = request.form.get("senha")
 
-        res = supabase.table("users").select("*").eq("username", username).eq("senha", senha).execute()
+        res = supabase.table("users")\
+            .select("*")\
+            .eq("username", username)\
+            .eq("senha", senha)\
+            .execute()
 
         if res.data:
             session["user"] = username
-            return redirect("/dashboard")
+            return redirect(url_for("dashboard"))
         else:
             return "Usuário inválido!"
 
@@ -61,12 +68,21 @@ def login():
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
-        return redirect("/login")
+        return redirect(url_for("login"))
 
     video_url = None
 
     if request.method == "POST":
-        video_url = request.form["link"]
+        link = request.form.get("link")
+
+        try:
+            api = f"https://api.tiklydown.eu.org/api/download?url={link}"
+            r = requests.get(api).json()
+
+            video_url = r["video"]["noWatermark"]
+
+        except:
+            return "Erro ao carregar vídeo!"
 
     return render_template("dashboard.html", video_url=video_url)
 
@@ -75,15 +91,10 @@ def dashboard():
 # =========================
 @app.route("/download", methods=["POST"])
 def download():
-    link = request.form["link"]
+    link = request.form.get("link")
 
     try:
-        api = f"https://api.tiklydown.eu.org/api/download?url={link}"
-        r = requests.get(api).json()
-
-        video = r["video"]["noWatermark"]
-
-        file = requests.get(video)
+        file = requests.get(link)
 
         with open("video.mp4", "wb") as f:
             f.write(file.content)
@@ -99,7 +110,7 @@ def download():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("/login")
+    return redirect(url_for("login"))
 
 # =========================
 # RUN
