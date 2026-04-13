@@ -8,7 +8,8 @@ app.secret_key = "segredo123"
 
 # ================= SUPABASE =================
 SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"  # ⚠️ coloque sua chave aqui
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ================= HOME =================
@@ -75,14 +76,13 @@ def dashboard():
 
         try:
             api = f"https://api.tiklydown.eu.org/api/download?url={link}"
-try:
-    r = requests.get(api).json()
-    video_url = r.get("video", {}).get("noWatermark")
-    
-    if not video_url:
-        raise Exception("Sem vídeo")
-except:
-    erro = "Link inválido ou API fora do ar"
+            response = requests.get(api)
+            data = response.json()
+
+            video_url = data.get("video", {}).get("noWatermark")
+
+            if not video_url:
+                raise Exception("Sem vídeo")
 
             # salvar histórico
             supabase.table("downloads").insert({
@@ -90,14 +90,18 @@ except:
                 "link": link
             }).execute()
 
-        except:
-            erro = "Erro ao buscar vídeo"
+        except Exception as e:
+            print("ERRO:", e)
+            erro = "Link inválido ou erro na API"
 
     # pegar histórico
-    historico = supabase.table("downloads")\
-        .select("*")\
-        .eq("username", session["user"])\
-        .execute().data
+    try:
+        historico = supabase.table("downloads")\
+            .select("*")\
+            .eq("username", session["user"])\
+            .execute().data
+    except:
+        historico = []
 
     return render_template("dashboard.html",
                            video_url=video_url,
@@ -110,15 +114,19 @@ def download():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    link = request.form.get("link")
+    video_url = request.form.get("video_url")
 
     try:
-        r = requests.get(link)
-        with open("video.mp4", "wb") as f:
+        r = requests.get(video_url)
+
+        file_path = "video.mp4"
+        with open(file_path, "wb") as f:
             f.write(r.content)
 
-        return send_file("video.mp4", as_attachment=True)
-    except:
+        return send_file(file_path, as_attachment=True)
+
+    except Exception as e:
+        print("ERRO DOWNLOAD:", e)
         return "Erro ao baixar vídeo"
 
 # ================= LOGOUT =================
@@ -130,4 +138,4 @@ def logout():
 # ================= RUN =================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
