@@ -6,27 +6,21 @@
 <body>
 
 <div class="top">
-Plano: {{plano}} | Restante: {{restante}}
-<a href="/upgrade">Upgrade</a>
+<h2>👋 {{user}}</h2>
+<div>
+<a href="/contas">Contas</a>
 <a href="/logout">Sair</a>
 </div>
+</div>
 
-<form method="POST">
-<input name="query" placeholder="Buscar vídeos..." required>
-<button>Buscar</button>
-</form>
+<div class="box">
+<h3>📥 Baixar vídeo</h3>
 
-<div class="grid">
-{% for v in videos %}
-<div class="card">
-<form method="POST" action="/download">
-<video src="{{v.video}}" controls></video>
-<p>❤️ {{v.likes}}</p>
-<input type="hidden" name="video" value="{{v.video}}">
+<form action="/baixar" method="POST">
+<input name="link" placeholder="Cole o link do TikTok" required>
 <button>Baixar</button>
 </form>
-</div>
-{% endfor %}
+
 </div>
 
 </body>

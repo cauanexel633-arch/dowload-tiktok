@@ -1,179 +1,123 @@
-import os
-import sqlite3
-import requests
-from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, session, send_file
+from supabase import create_client
+from werkzeug.security import generate_password_hash, check_password_hash
+import requests, os, uuid
 
 app = Flask(__name__)
 app.secret_key = "segredo123"
 
-PLANOS = {
-    "free": 2,
-    "pro": 50
-}
+# ================= SUPABASE =================
+SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjk3ODAsImV4cCI6MjA5MTY0NTc4MH0.08XVFqBE_SvbiNeLYLsUHd6xKa8xkDssbFjoKE0oYtI"
 
-# ================= DB =================
-def conectar():
-    return sqlite3.connect("database.db")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def criar_db():
-    con = conectar()
-    cur = con.cursor()
+# ================= ROTAS =================
+@app.route("/")
+def home():
+    return render_template("login.html")
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        email TEXT,
-        password TEXT,
-        plano TEXT DEFAULT 'free',
-        downloads INTEGER DEFAULT 0,
-        ultima_reset TEXT
-    )
-    """)
+@app.route("/register_page")
+def register_page():
+    return render_template("register.html")
 
-    con.commit()
-    con.close()
+# ================= REGISTER =================
+@app.route("/register", methods=["POST"])
+def register():
+    user = request.form["user"]
+    email = request.form["email"]
+    senha = request.form["senha"]
 
-criar_db()
+    # verifica se já existe usuário
+    check = supabase.table("users").select("*").eq("username", user).execute()
 
-# ================= RESET =================
-def reset(user):
-    hoje = datetime.now()
+    if check.data:
+        return "❌ Usuário já existe!"
 
-    if user[6]:
-        ultima = datetime.strptime(user[6], "%Y-%m-%d")
-        if hoje - ultima >= timedelta(days=7):
-            return True
-    else:
-        return True
+    senha_hash = generate_password_hash(senha)
 
-    return False
+    supabase.table("users").insert({
+        "username": user,
+        "email": email,
+        "password": senha_hash
+    }).execute()
 
-# ================= BUSCAR TIKTOK =================
-def buscar_videos(query):
-    # ⚠️ Aqui é MOCK (substitua por API real depois)
-    videos = []
-
-    for i in range(8):
-        videos.append({
-            "video": "https://www.w3schools.com/html/mov_bbb.mp4",
-            "thumb": "",
-            "likes": 1000 + i*200
-        })
-
-    return videos
+    return redirect("/")
 
 # ================= LOGIN =================
-@app.route("/", methods=["GET", "POST"])
+@app.route("/login", methods=["POST"])
 def login():
-    if request.method == "POST":
-        user = request.form["username"]
-        senha = request.form["password"]
+    user = request.form["user"]
+    senha = request.form["senha"]
 
-        con = conectar()
-        cur = con.cursor()
+    res = supabase.table("users").select("*").eq("username", user).execute()
 
-        cur.execute("SELECT * FROM users WHERE username=? AND password=?", (user, senha))
-        u = cur.fetchone()
+    if res.data:
+        user_db = res.data[0]
 
-        if u:
-            if reset(u):
-                cur.execute("UPDATE users SET downloads=0, ultima_reset=? WHERE id=?",
-                            (datetime.now().strftime("%Y-%m-%d"), u[0]))
-                con.commit()
-
+        if check_password_hash(user_db["password"], senha):
             session["user"] = user
             return redirect("/dashboard")
 
-        return "Login inválido"
-
-    return render_template("login.html")
-
-# ================= REGISTER =================
-@app.route("/register", methods=["GET","POST"])
-def register():
-    if request.method == "POST":
-        con = conectar()
-        cur = con.cursor()
-
-        cur.execute("INSERT INTO users (username,email,password) VALUES (?,?,?)",
-                    (request.form["username"], request.form["email"], request.form["password"]))
-
-        con.commit()
-        con.close()
-
-        return redirect("/")
-
-    return render_template("register.html")
+    return "❌ Login inválido"
 
 # ================= DASHBOARD =================
-@app.route("/dashboard", methods=["GET","POST"])
+@app.route("/dashboard")
 def dashboard():
     if "user" not in session:
         return redirect("/")
+    return render_template("dashboard.html", user=session["user"])
 
-    con = conectar()
-    cur = con.cursor()
-
-    cur.execute("SELECT * FROM users WHERE username=?", (session["user"],))
-    user = cur.fetchone()
-
-    limite = PLANOS[user[4]]
-    restante = limite - user[5]
-
-    videos = []
-
-    if request.method == "POST":
-        query = request.form["query"]
-        videos = buscar_videos(query)
-
-    return render_template("dashboard.html",
-                           videos=videos,
-                           restante=restante,
-                           plano=user[4])
-
-# ================= DOWNLOAD =================
-@app.route("/download", methods=["POST"])
-def download():
+# ================= CONTAS =================
+@app.route("/contas")
+def contas():
     if "user" not in session:
         return redirect("/")
 
-    con = conectar()
-    cur = con.cursor()
+    res = supabase.table("users").select("username").execute()
+    return render_template("contas.html", contas=res.data)
 
-    cur.execute("SELECT * FROM users WHERE username=?", (session["user"],))
-    user = cur.fetchone()
-
-    if user[5] >= PLANOS[user[4]]:
-        return "Limite atingido"
-
-    url = request.form.get("video")
-
-    r = requests.get(url)
-
-    with open("video.mp4", "wb") as f:
-        f.write(r.content)
-
-    cur.execute("UPDATE users SET downloads = downloads + 1 WHERE id=?", (user[0],))
-    con.commit()
-
-    return send_file("video.mp4", as_attachment=True)
-
-# ================= UPGRADE =================
-@app.route("/upgrade")
-def upgrade():
-    return render_template("upgrade.html")
-
-@app.route("/comprar", methods=["POST"])
-def comprar():
-    con = conectar()
-    cur = con.cursor()
-
-    cur.execute("UPDATE users SET plano='pro' WHERE username=?", (session["user"],))
-    con.commit()
-
+@app.route("/trocar_conta/<user>")
+def trocar_conta(user):
+    session["user"] = user
     return redirect("/dashboard")
+
+# ================= DOWNLOAD =================
+def baixar_video(url):
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    try:
+        r = requests.get(url, headers=headers, stream=True, timeout=15)
+
+        if r.status_code != 200:
+            return None
+
+        os.makedirs("downloads", exist_ok=True)
+
+        nome = f"video_{uuid.uuid4().hex}.mp4"
+        caminho = f"downloads/{nome}"
+
+        with open(caminho, "wb") as f:
+            for chunk in r.iter_content(1024):
+                f.write(chunk)
+
+        return caminho
+
+    except:
+        return None
+
+@app.route("/baixar", methods=["POST"])
+def baixar():
+    if "user" not in session:
+        return redirect("/")
+
+    link = request.form["link"]
+    caminho = baixar_video(link)
+
+    if not caminho:
+        return "❌ Erro ao baixar vídeo"
+
+    return send_file(caminho, as_attachment=True)
 
 # ================= LOGOUT =================
 @app.route("/logout")

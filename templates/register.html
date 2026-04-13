@@ -6,14 +6,18 @@
 <body>
 
 <div class="box">
-<h2>Cadastro</h2>
+<h2>🆕 Criar Conta</h2>
 
-<form method="POST">
-<input name="username" placeholder="Usuário" required>
-<input name="email" placeholder="Email" required>
-<input name="password" type="password" placeholder="Senha" required>
-<button>Criar conta</button>
+<form action="/register" method="POST">
+<input name="user" placeholder="Usuário" required>
+<input type="email" name="email" placeholder="Email" required>
+<input type="password" name="senha" placeholder="Senha" required>
+<button>Cadastrar</button>
 </form>
+
+<p style="text-align:center;">
+Já tem conta? <a href="/">Entrar</a>
+</p>
 
 </div>
 
