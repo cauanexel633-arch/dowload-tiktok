@@ -8,7 +8,7 @@ app.secret_key = "segredo123"
 
 # 🔗 SUPABASE
 SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
-SUPABASE_KEY = "SUA_KEY_AQUI"  # coloque sua key aqui
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA2OTc4MCwiZXhwIjoyMDkxNjQ1NzgwfQ.8O8ZDztZNHVQc_m0kt7nQv5i0yvTwfUzFrQp_vzrWsU"  # coloque sua key aqui
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # =========================
