@@ -1,25 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" href="/static/style.css">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-<div class="top">
-<h2>👋 {{user}}</h2>
-<div>
-<a href="/contas">Contas</a>
-<a href="/logout">Sair</a>
-</div>
-</div>
+<div class="container">
 
-<div class="box">
-<h3>📥 Baixar vídeo</h3>
+    <h2>🎥 Baixar vídeo do TikTok</h2>
 
-<form action="/baixar" method="POST">
-<input name="link" placeholder="Cole o link do TikTok" required>
-<button>Baixar</button>
-</form>
+    <form method="POST" action="/preview">
+        <input type="text" name="link" placeholder="Cole o link do TikTok" required>
+        <button type="submit">Visualizar</button>
+    </form>
+
+    {% if erro %}
+        <p class="erro">{{ erro }}</p>
+    {% endif %}
+
+    {% if video_url %}
+        <div class="video-box">
+            <video controls autoplay loop muted>
+                <source src="{{ video_url }}" type="video/mp4">
+            </video>
+
+            <form method="POST" action="/download">
+                <input type="hidden" name="video_url" value="{{ video_url }}">
+                <button type="submit">⬇ Baixar Vídeo</button>
+            </form>
+        </div>
+    {% endif %}
+
+    <br>
+    <a href="/logout">Sair</a>
 
 </div>
 
