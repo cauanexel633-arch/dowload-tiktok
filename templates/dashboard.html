@@ -1,26 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Cadastro</title>
+<title>Downloader</title>
 <style>
 body{background:#020617;color:white;text-align:center;font-family:Arial}
+.card{background:#0f172a;padding:20px;border-radius:20px;width:350px;margin:auto}
 input,button{padding:10px;margin:10px;border-radius:10px;border:none}
-button{background:#3b82f6;color:white}
+button{background:#22c55e;color:white}
+video{width:100%;border-radius:10px}
+.hist{background:#020617;padding:10px;margin-top:10px;border-radius:10px}
 </style>
 </head>
 <body>
 
-<h1>Criar Conta</h1>
+<h2>Olá {{ session.user }}</h2>
 
-<form method="POST" action="/register">
-<input name="username" placeholder="Usuário"><br>
-<input type="password" name="senha" placeholder="Senha"><br>
-<button>Cadastrar</button>
+<div class="card">
+
+<form method="POST">
+<input name="link" placeholder="Cole link do TikTok">
+<button>Buscar</button>
 </form>
 
 <p style="color:red;">{{ erro }}</p>
 
-<a href="/login">Voltar</a>
+{% if video_url %}
+<video controls src="{{ video_url }}"></video>
+
+<form method="POST" action="/download">
+<input type="hidden" name="link" value="{{ video_url }}">
+<button>Baixar</button>
+</form>
+{% endif %}
+
+</div>
+
+<h3>Histórico</h3>
+
+{% for item in historico %}
+<div class="hist">
+{{ item.link }}
+</div>
+{% endfor %}
+
+<br>
+<a href="/logout">Sair</a>
 
 </body>
 </html>
