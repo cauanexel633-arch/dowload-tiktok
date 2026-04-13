@@ -1,59 +1,31 @@
 from flask import Flask, render_template, request, redirect, session, send_file
 import requests
-import re
 import os
 from supabase import create_client
 
 app = Flask(__name__)
 app.secret_key = "segredo123"
 
-# ================= SUPABASE =================
+# 🔗 SUPABASE
 SUPABASE_URL = "https://sijudfgbumzaczlcsnac.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpanVkZmdidW16YWN6bGNzbmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjk3ODAsImV4cCI6MjA5MTY0NTc4MH0.08XVFqBE_SvbiNeLYLsUHd6xKa8xkDssbFjoKE0oYtI"
-
+SUPABASE_KEY = "SUA_KEY_AQUI"  # coloque sua key aqui
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ================= HOME =================
+# =========================
+# HOME
+# =========================
 @app.route("/")
 def home():
     return redirect("/login")
 
-# ================= LOGIN =================
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        senha = request.form.get("senha")
-
-        res = supabase.table("users")\
-            .select("*")\
-            .eq("username", username)\
-            .eq("senha", senha)\
-            .execute()
-
-        if res.data:
-            session["user"] = username
-            return redirect("/dashboard")
-
-        return render_template("login.html", erro="Usuário inválido")
-
-    return render_template("login.html")
-
-# ================= REGISTRO =================
+# =========================
+# REGISTER
+# =========================
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username")
-        senha = request.form.get("senha")
-
-        # verifica se já existe
-        check = supabase.table("users")\
-            .select("*")\
-            .eq("username", username)\
-            .execute()
-
-        if check.data:
-            return render_template("register.html", erro="Usuário já existe")
+        username = request.form["username"]
+        senha = request.form["senha"]
 
         supabase.table("users").insert({
             "username": username,
@@ -64,80 +36,74 @@ def register():
 
     return render_template("register.html")
 
-# ================= DASHBOARD =================
-@app.route("/dashboard")
+# =========================
+# LOGIN
+# =========================
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        senha = request.form["senha"]
+
+        res = supabase.table("users").select("*").eq("username", username).eq("senha", senha).execute()
+
+        if res.data:
+            session["user"] = username
+            return redirect("/dashboard")
+        else:
+            return "Usuário inválido!"
+
+    return render_template("login.html")
+
+# =========================
+# DASHBOARD
+# =========================
+@app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
         return redirect("/login")
 
-    return render_template("dashboard.html")
+    video_url = None
 
-# ================= PEGAR VIDEO =================
-def pegar_video_url(link):
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(link, headers=headers)
-        html = r.text
-
-        match = re.search(r'"playAddr":"(https:[^"]+)"', html)
-
-        if match:
-            return match.group(1)\
-                .replace("\\u0026", "&")\
-                .replace("\\u002F", "/")
-
-        return None
-    except:
-        return None
-
-# ================= PREVIEW =================
-@app.route("/preview", methods=["POST"])
-def preview():
-    if "user" not in session:
-        return redirect("/login")
-
-    link = request.form.get("link")
-    video_url = pegar_video_url(link)
-
-    if not video_url:
-        return render_template("dashboard.html", erro="❌ Vídeo não encontrado")
+    if request.method == "POST":
+        video_url = request.form["link"]
 
     return render_template("dashboard.html", video_url=video_url)
 
-# ================= DOWNLOAD =================
+# =========================
+# DOWNLOAD
+# =========================
 @app.route("/download", methods=["POST"])
 def download():
-    if "user" not in session:
-        return redirect("/login")
+    link = request.form["link"]
 
-    video_url = request.form.get("video_url")
+    try:
+        api = f"https://api.tiklydown.eu.org/api/download?url={link}"
+        r = requests.get(api).json()
 
-    if not video_url:
-        return redirect("/dashboard")
+        video = r["video"]["noWatermark"]
 
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Referer": "https://www.tiktok.com/"
-    }
+        file = requests.get(video)
 
-    r = requests.get(video_url, headers=headers, stream=True)
+        with open("video.mp4", "wb") as f:
+            f.write(file.content)
 
-    caminho = "video.mp4"
+        return send_file("video.mp4", as_attachment=True)
 
-    with open(caminho, "wb") as f:
-        for chunk in r.iter_content(1024 * 1024):
-            if chunk:
-                f.write(chunk)
+    except:
+        return "Erro ao baixar vídeo!"
 
-    return send_file(caminho, as_attachment=True)
-
-# ================= LOGOUT =================
+# =========================
+# LOGOUT
+# =========================
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
-# ================= RUN =================
+# =========================
+# RUN
+# =========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
